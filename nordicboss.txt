@@ -1,0 +1,1596 @@
+local ffi = require("ffi")
+local username = cheat.GetCheatUserName()
+					local preset = ""
+					    ------------------------------------------- Nordic.lua -------------------------------------------
+					    local lua_elements = {
+					      
+					        welcome = menu.Text("Welcome. to Nordic ", "Welcome to Nordic.lua, " .. username .. "!\nLast Update 08.08.2021: Build Live"),
+					      
+					    }
+					
+					    local lua_anti = {
+					     
+					    }
+					
+					    local menu_elements = {
+					        
+					    }
+
+local rage_master = menu.Switch("Aimbot", "Master Switch", false)
+local faster_dt = menu.Switch("Aimbot", "Improve double-tap speed", false, "Speed up the cheats DT")
+local dt_mode = menu.Combo("Aimbot", "Double-tap Mode", {"Safe", "Aggressive", "Unstable"}, 0)
+local faster_dt_recharge = menu.Switch("Aimbot", "Improve double-tap recharge", false, "Speed up the cheats DT recharge")
+local recharge_mode = menu.Combo("Aimbot", "Recharge behavior", { "Instant", "Smart", "Hybrid" }, 0, "The way the recharging will work");
+local dt_damage = menu.Switch("Aimbot", "Override double-tap damage", false, "Makes so the min. damage is overwritten when double-tapping");
+local hitscan_enable = menu.Switch("Aimbot", "Advanced hitscan", false)
+local priority = menu.Combo("Aimbot", "Prioritse hitbox", { "Head", "Upper chest", "Chest", "Lower chest", "Stomach", "Pelvis", "Legs", "Arms", "Feet"}, 0)
+local prioritse_amount = menu.SliderInt("Aimbot", "Priority value", 0, 0, 100)
+ 
+--local safe_hitboxes = menu.MultiCombo("Aimbot", "Safepoint hitboxes", { "Head", "Upper chest", "Chest", "Lower chest", "Stomach", "Pelvis", "Legs", "Arms", "Feet"}, 0)
+local hitscan_type = menu.Combo("Aimbot", "Hitscan type", {"Lenient", "Strict", "Hybrid"}, 0, "Lenient = Prefer.\nStrict = Force.\nHybrid = Mixed.")
+local prefer_head = menu.MultiCombo("Aimbot", "Prefer head when", {"Running", "Shot"}, 0)
+local prefer_body = menu.MultiCombo("Aimbot", "Prefer baim when", {"Slowwalking", "Crouching", "Lethal"}, 0)
+local force_head = menu.MultiCombo("Aimbot", "Force head when", {"Running", "Shot"}, 0)
+local force_body = menu.MultiCombo("Aimbot", "Force baim when", {"Slowwalking", "Crouching", "Lethal"}, 0)
+
+local aa_master = menu.Switch("Anti-Aim", "Master Switch", false)
+local aa_sys = menu.Switch("Anti-Aim", "Custom anti-aim", false)
+local aa_type = menu.Combo("Anti-Aim", "Anti-aim mode", { "Default", "Aggressive" }, 0, "Determines how the anti-aim will work")
+local aa_unsafe = menu.MultiCombo("Anti-Aim", "Force unsafe", { "When vulnerable", "When in air" }, 0, "Chooses when to jitter your anti-aim")
+local aa_preserve = menu.Switch("Anti-Aim", "Preserve safe angles", false, "Will lean towards the edge of the closest wall when not moving")
+local anti_brute = menu.Switch("Anti-Aim", "Anti-resolver", false)
+local anti_brute_mode = menu.Combo("Anti-Aim", "Anti-resolver mode", { "Switch", "Low-delta" }, 0, "Determines how the anti-resolver will work")
+local legitaa_e = menu.Switch("Anti-Aim", "Force legit anti-aim", false, "Turns on legit AA when you press E")
+local edge_yaw = menu.Switch("Anti-Aim", "Force edge yaw", false, "Bind for on key, turn on for always")
+
+local fakelag_enable = menu.Switch("Fakelag", "Master Switch", false)
+local fakelag_type = menu.Combo("Fakelag", "Fake-lag type", {"Dynamic", "Adaptive", "Fluctuate"}, 0)
+local fakelag_value = menu.SliderInt("Fakelag", "Fake-lag limit", 0, 0, 14)
+
+local indicators_col = menu.SwitchColor("Visual", "Display Nordic.lua", false, Color.new(1.0, 1.0, 1.0,1.0))
+local show_keybinds = menu.SwitchColor("Visual", "Display keybinds with indicators", false, Color.new(1.0, 1, 1, 1))
+local scope_enable = menu.SwitchColor("Visual", "Custom scope lines", false, Color.new(1,1,1,1), "Custom scope overlay")
+local scope_inverted = menu.Switch("Visual", "Invert scope lines", false, "Invert the low alpha location")
+local scope_length = menu.SliderInt("Visual", "Scope line length", 20, 0, 100)
+local scope_offset = menu.SliderInt("Visual", "Scope line offset", 5, 0, 100)
+local bullet_tracers = menu.SwitchColor("Visual", "Bullet tracers", false, Color.new(0.25, 0.25, 0.25, 0.75));
+local bullet_tracers_xhair = menu.SwitchColor("Visual", "Bullet tracers crosshair", false, Color.new(0.15, 0.95, 0.20, 0.75));
+local static_ragdoll = menu.Switch("Visual", "Static ragdolls", false, "Makes so ragdolls stay static after players die")
+
+local logs = menu.Switch("Logging", "Enable logs", false)
+local log_type = menu.MultiCombo("Logging", "Log type", {"Event log", "Notifies"}, 0)
+local log_options = menu.MultiCombo("Logging", "Conditions", {"Fire", "Hits", "Spread misses", "Resolver misses", "Prediction misses", "Occlusion misses"} , 0)
+local watermark_enable = menu.Switch("Misc", "Enable watermark", true)
+local clantag_enable = menu.Switch("Misc", "Enable Clantag", false)
+
+
+local ref_yaw 	= g_Config:FindVar("Aimbot", "Anti Aim", "Main", "Yaw Base");
+local ref_yaw_offset = g_Config:FindVar("Aimbot", "Anti Aim", "Main", "Yaw Add");
+local ref_jitter = g_Config:FindVar("Aimbot", "Anti Aim", "Main", "Yaw Modifier");
+local ref_jitter_offset = g_Config:FindVar("Aimbot", "Anti Aim", "Main", "Modifier Degree");
+local ref_left_limit = g_Config:FindVar("Aimbot", "Anti Aim", "Fake Angle", "Left Limit");
+local ref_right_limit = g_Config:FindVar("Aimbot", "Anti Aim", "Fake Angle", "Right Limit");
+local ref_fake_options = g_Config:FindVar("Aimbot", "Anti Aim", "Fake Angle", "Fake Options");
+local ref_lby = g_Config:FindVar("Aimbot", "Anti Aim", "Fake Angle", "LBY Mode");
+local ref_freestanding = g_Config:FindVar("Aimbot", "Anti Aim", "Fake Angle", "Freestanding Desync");
+local ref_onshot = g_Config:FindVar("Aimbot", "Anti Aim", "Fake Angle", "Desync On Shot");
+
+local ref_dt = g_Config:FindVar("Aimbot", "Ragebot", "Exploits", "Double Tap");
+local ref_md_visible = g_Config:FindVar("Aimbot", "Ragebot", "Accuracy", "Minimum Damage");
+
+local ref_slowwalk = g_Config:FindVar("Aimbot", "Anti Aim", "Misc", "Slow Walk");
+local ref_autopeek = g_Config:FindVar("Miscellaneous", "Main", "Movement", "Auto Peek");
+local ref_lines = g_Config:FindVar("Visuals", "View", "Camera", "Remove Scope");
+
+--- ffi stuff goes here
+ffi.cdef[[ 
+    typedef int(__fastcall* clantag_t)(const char*, const char*);
+]]
+
+local fn_change_clantag = utils.PatternScan("engine.dll", "53 56 57 8B DA 8B F9 FF 15")
+local set_clantag = ffi.cast("clantag_t", fn_change_clantag)
+--- no ffi stuff past here >;c
+	
+local font = g_Render:InitFont("Segoe UI Bold", 24)
+local build_num = 2;
+local build = (function() if build_num == 2 then return "[Beta]" elseif build_num == 1 then return "[BETA]" else return "[LIVE]" end end)()
+local screen_size = g_EngineClient:GetScreenSize()
+local last_time = 0;
+local legit_time = 0;
+local aa_state = false;
+local aa_mode = "Dynamic";
+local ct_once = false;
+local local_scoped = false;
+local type_text = ""
+local part_text = ""
+
+local shot_data = { };
+
+local animation = {
+	"|",
+	"",
+	"|",
+	"n|",
+	"no|", 
+	"nor|",
+	"nord|",
+	"nordi|",
+	"nordic|",
+	"nordic.|",
+	"nordic|",
+	"nordic|",
+	"nordic",
+	"nordic|",
+	"nordic",
+	"nordic|",
+	"nordi|",
+	"nord|",
+	"nor|",
+	"no|",
+	"n|",
+	".l|",
+	".lu|",
+	".lua|",
+	"|",
+	""
+}
+					
+local hitgroups = {
+[0] = "generic",
+[1] = "head",
+[2] = "chest",
+[3] = "stomach",
+[4] = "left arm",
+[5] = "right arm", 
+[6] = "left leg",
+[7] = "right leg", 
+[10] = "gear"
+}
+
+
+--- functions
+CalculateAngles = function(from, to) 
+    local sub = to - from;
+
+    local pitch = -math.deg(math.atan2(sub.z, math.sqrt(sub.x ^ 2 + sub.y ^ 2)));
+    local yaw = math.deg(math.atan2(sub.y, sub.x));
+
+    return pitch, yaw
+end
+
+Normalize = function(yaw)
+    while yaw > 180 do
+        yaw = yaw - 360;
+    end
+
+    while yaw < -180 do
+        yaw = yaw + 360;
+    end
+
+    return yaw;
+end
+
+AngleVector = function(ang)
+	local sp = math.sin(math.rad(ang.pitch));
+	local cp = math.cos(math.rad(ang.pitch));
+	local sy = math.sin(math.rad(ang.yaw));
+	local cy = math.cos(math.rad(ang.yaw));
+
+	return Vector.new(cp * cy, cp * sy, -sp);
+end
+
+distance = function(x,y)
+    return math.sqrt((y.x - x.x)^2 + (y.y - x.x)^2 + (y.z - x.z)^2 )
+end
+
+AngleExtrapolate = function(vec, angles, distance) 
+	local dir = AngleVector(angles);
+
+	return Vector.new(
+		vec.x + dir.x * distance,
+		vec.y + dir.y * distance,
+		vec.z + dir.z * distance
+	);
+end
+
+NormalizeVector = function(vec)
+	local len = vec:Length()
+
+	vec.x = vec.x / len;
+	vec.y = vec.y / len;
+	vec.z = vec.z / len;
+
+	return vec
+end
+
+ClosestPointToRay = function(origin, start_point, end_point)
+	local dir 	= end_point - start_point;
+	local len 	= dir:Length()
+	local dest 	= origin - start_point;
+
+	dir 			= NormalizeVector(dir);
+
+	local dot 	= dir:Dot(dest);
+
+	if dot < 0 then
+		return start_point
+	end
+
+	if dot > len then
+		return end_point
+	end
+
+	return Vector.new(
+		start_point.x + dir.x * dot,
+		start_point.y + dir.y * dot,
+		start_point.z + dir.z * dot
+	);
+end
+
+Unshift = function(table, item)
+	local new_tbl = { item };
+
+	for i = 1, #table do
+		new_tbl[i+1] = table[i];
+	end
+	
+	for i = 1, #new_tbl do
+		table[i] = new_tbl[i];
+	end
+end
+
+local offsets = {
+	Vector2.new(-1, -1),
+	Vector2.new(-1, 1),
+	Vector2.new(1, -1),
+	Vector2.new(1, 1)
+}
+
+ThickLine = function(x, y, clr)
+	g_Render:Line(x + offsets[1], y + offsets[1], Color.new(clr.r, clr.g, clr.b, clr.a / 2));
+	g_Render:Line(x + offsets[2], y + offsets[2], Color.new(clr.r, clr.g, clr.b, clr.a / 2));
+	g_Render:Line(x + offsets[3], y + offsets[3], Color.new(clr.r, clr.g, clr.b, clr.a / 2));
+	g_Render:Line(x + offsets[4], y + offsets[4], Color.new(clr.r, clr.g, clr.b, clr.a / 2));
+	g_Render:Line(x, y, clr);
+end
+-- aaaaa
+	
+--- dt
+local dt = {
+	last_shot = 0
+}
+
+DTSpeed = function() 
+	if not faster_dt:GetBool() and not faster_dt_recharge:GetBool() then 
+	return; end
+	
+	local mode = dt_mode:GetInt()
+	local clock_correction = g_CVar:FindVar("cl_clock_correction")
+	local processticks = g_CVar:FindVar("sv_maxusrcmdprocessticks")
+
+	local shift_amt = mode == 0 and 14 or mode == 1 and 15 or mode == 2 and 17
+	local processticks_amt = mode == 0 and 16 or mode == 1 and 17 or mode == 2 and 18
+
+	if  (faster_dt:GetBool()) then 
+		processticks:SetInt(processticks_amt)
+		exploits.OverrideDoubleTapSpeed(shift_amt)
+		clock_correction:SetInt(0)
+	else 
+		processticks:SetInt(16)
+		exploits.OverrideDoubleTapSpeed(13) 
+		clock_correction:SetInt(1)
+	end
+
+	ShouldRecharge = function()
+		local mode = recharge_mode:GetInt();
+		local hitboxes = { 0, 5, 6 };
+
+		if mode == 0 then
+			return true
+		end
+
+		CanShoot = function()
+			local me = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer()):GetPlayer()
+			
+			if not me then
+				return false
+			end
+
+			local eye_pos = me:GetEyePosition()
+
+			local players = g_EntityList:GetPlayers()
+
+			if not players then
+				return false
+			end
+
+			for _, player in pairs(players) do
+				if player:IsDormant() or player:IsTeamMate() then
+				goto continue end
+
+				for i = 1, #hitboxes do
+					local hitbox_pos = player:GetHitboxCenter(hitboxes[i]);
+
+					local bullet = cheat.FireBullet(me, eye_pos, hitbox_pos);
+
+					if not bullet then
+						goto continue
+					end
+
+					if bullet.damage >= 5 then
+						return false
+					end
+				end
+
+				::continue::
+			end
+
+			return true
+		end
+
+		if mode == 1 then
+			return CanShoot()
+		end
+
+		if mode == 2 then
+			if dt.last_shot > 0 then
+				local target = g_EntityList:GetClientEntity(dt.last_shot):GetPlayer();
+
+				if not target then
+					return CanShoot();
+				end
+
+				if target:IsAlive() then
+					return CanShoot();
+				else
+					dt.last_shot = -1
+
+					return true;
+				end
+			else
+				dt.last_shot = -1;
+
+				return true;
+			end
+		end
+
+		return false
+	end
+
+	if faster_dt_recharge:GetBool() and ShouldRecharge() then
+		exploits.ForceCharge();
+	end
+end
+
+DTSpeed_Update = function(shot)
+	--[[if dt.last_time + 2.5 > g_GlobalVars.curtime then
+		return
+	end]]
+
+	dt.last_shot = shot.index;
+end
+
+DTDamage = function()
+	if not dt_damage:GetBool() then
+		return
+	end
+
+	if exploits.GetCharge() ~= 1 then
+		return
+	end
+
+	local binds = cheat.GetBinds()
+	for i = 1, #binds do
+		if  binds[i]:IsActive() and binds[i]:GetName() == "Mininum Damage" then
+			return;
+		end	
+	end
+
+	local players = g_EntityList:GetPlayers()
+
+	if not players then
+		return
+	end
+
+	for _, player in pairs(players) do
+		if not player or player:IsDormant() or player:IsTeamMate() or not player:IsAlive() then
+		goto continue end
+
+		local health = player:GetProp("m_iHealth");
+
+		if health < 0 then  goto continue end
+		
+
+		ragebot.OverrideMinDamage(player:EntIndex(), math.floor(health / 2 + 0.5));
+
+		::continue::
+	end
+end
+-- end dt
+
+--- AA
+local side = 1;
+
+local antibrute_side = 0;
+local antibrute_time = 0;
+
+OverrideAntiAim = function(data)
+	local active = math.fmod(g_GlobalVars.tickcount, 4) >= 2
+
+	antiaim.OverrideLimit(data.limit)
+	antiaim.OverrideInverter(data.inverted)
+	antiaim.OverrideLBYOffset(data.lby)
+	antiaim.OverrideYawOffset(data.yaw + ( active and data.jitter or 0 ))
+end
+
+UpdateAntiBrute = function(event)
+	if not aa_master:GetBool() then
+	return end
+
+	if not anti_brute:GetBool() then
+	return; end
+
+	local me = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer())
+	local player = me:GetPlayer()
+
+	if player:GetProp("m_lifeState") == true then 
+	return; end
+
+	local shooter = g_EntityList:GetClientEntity(g_EngineClient:GetPlayerForUserId(event:GetInt("userid"))):GetPlayer();	
+
+	if shooter:IsTeamMate() or shooter:IsDormant() then
+	return end
+
+	local eye_pos = player:GetEyePosition()
+	local view_angles = player:GetProp("m_angEyeAngles[1]");
+
+	local from = shooter:GetEyePosition();
+	local to = Vector.new( event:GetFloat("x"), event:GetFloat("y"), event:GetFloat("z") );
+	local right = AngleExtrapolate(eye_pos, QAngle.new(0, view_angles + 90, 0), 16);
+	local left = AngleExtrapolate(eye_pos, QAngle.new(0, view_angles - 90, 0), 16);
+
+	local closest = ClosestPointToRay(eye_pos, from, to);
+
+	local right_distance = right:DistTo(closest);
+	local left_distance = left:DistTo(closest);
+
+	if right_distance > 35 and left_distance > 35 then
+	return end
+
+	if right_distance < left_distance then
+		--cheat.AddNotify("Nordic.lua", "Anti bruteforce activated (right)")
+
+		antibrute_side = 1
+		antibrute_time = g_GlobalVars.curtime
+	else
+		--cheat.AddNotify("Nordic.lua", "Anti brute activated (left)")
+
+		antibrute_side = 2
+		antibrute_time = g_GlobalVars.curtime
+	end
+end
+
+CustomAA = function(cmd)
+	if not aa_master:GetBool() then
+	return end
+
+	if not aa_sys:GetBool() then
+	return; end
+
+	local binds = cheat.GetBinds()
+	local yaw_base = false;
+
+	for i = 1, #binds do
+		if  binds[i]:IsActive() and binds[i]:GetName() == "Yaw Base" then
+			yaw_base = true
+		end	
+	end
+
+	GetFreeStandSide = function()
+		GetClosestPlayer = function(from)
+			local players = g_EntityList:GetPlayers( );
+
+			local data = {
+				distance = 8192,
+				player   = nil
+			};
+
+			for idx, ptr in pairs(players) do
+				if ptr:IsTeamMate( ) or ptr:IsDormant( ) or ptr:GetProp("m_lifeState") == 0 then
+					goto skip
+				end
+
+				local distance = from:DistTo(ptr:GetRenderOrigin( ));
+
+				if data.distance > distance then
+					data.distance = distance;
+					data.player   = ptr;
+				end
+
+				::skip::
+			end
+
+			return data.player;
+		end
+
+		local entity = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer()) -- Entity of lp
+		local player = entity:GetPlayer() -- player
+		local eye_pos = player:GetEyePosition() -- Returns a vec3 for us to use
+		local view_angles = g_EngineClient:GetViewAngles()
+
+		local vel_x = player:GetProp("m_vecVelocity[0]");
+		local vel_y = player:GetProp("m_vecVelocity[1]");
+
+		local speed = Vector.new(vel_x, vel_y, 0):Length2D( );
+
+		local data = {
+			left = 0, right = 0, distance = 8192
+		};
+
+		local closest = GetClosestPlayer(eye_pos);
+
+		for i = view_angles.yaw - 180, view_angles.yaw + 180, 30 do 
+			if i == view_angles.yaw then
+				goto continue 
+			end
+
+			local rotation = math.rad(i)
+			local point = Vector.new(
+				eye_pos.x + math.cos(rotation) * 1028,
+				eye_pos.y + math.sin(rotation) * 1028,
+				eye_pos.z
+			)
+
+			if (type(point) ~= "userdata" or type(eye_pos) ~= "userdata" or type(entity) ~= "userdata") then
+			goto continue end
+
+			local trace = EngineTrace.TraceRay(eye_pos, point, entity, 0x4600400b)
+			local dst   = trace.fraction * 1028;
+
+			if not closest then
+				local side = i > view_angles.yaw and "left" or "right";
+
+				data[side] = data[side] + dst;
+			end
+
+			if data.distance > dst then
+				data.distance = dst
+			end
+
+			::continue::
+		end
+
+		if closest then
+			local rotation = antiaim.GetCurrentRealRotation( );
+
+			local positions = {
+				left = AngleExtrapolate(eye_pos, QAngle.new(0, rotation - 90, 0), 64),
+				right = AngleExtrapolate(eye_pos, QAngle.new(0, rotation + 90, 0), 64)
+			};
+	
+			for side, pos in pairs(positions) do
+				local bullet = cheat.FireBullet(closest, closest:GetEyePosition( ), pos);
+
+				data[side] = bullet.damage;
+			end
+
+			if data.left > 0 and data.right > 0 then
+				return 3, data.distance;
+			end
+		end
+
+		return data.left < data.right and 1 or 2, data.distance, speed > 2
+	end
+
+	ShouldPreferSafe = function(cmd)
+		local entity = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer())
+		local me = entity:GetPlayer()
+
+		if aa_unsafe:GetBool(1) and ( bit.band(me:GetProp("m_fFlags"), 1) ~= 1 or bit.band(cmd.buttons, bit.lshift(1, 1)) == 1 ) then
+			return true 
+		end
+
+		if aa_unsafe:GetBool(0) then
+			local players = g_EntityList:GetPlayers()
+			for _, player in pairs(players) do
+				if player:IsTeamMate() or player:IsDormant() then
+					goto continue;
+				end	
+
+				local vel = Vector.new(
+					me:GetProp("m_vecVelocity[0]") * g_GlobalVars.interval_per_tick * 4,
+					me:GetProp("m_vecVelocity[1]") * g_GlobalVars.interval_per_tick * 4,
+					me:GetProp("m_vecVelocity[2]") * g_GlobalVars.interval_per_tick * 4
+				)
+
+				local extrap_pos = me:GetHitboxCenter(0) + vel;
+
+				local bullet = cheat.FireBullet(player, player:GetEyePosition(), extrap_pos);
+				
+				if bullet.damage > 5 then
+					return true
+				end
+
+				::continue::
+			end
+		end
+
+		return false
+	end
+
+	ShouldAntiBrute = function()
+		if g_GlobalVars.curtime > antibrute_time + 3.5 then
+			return false
+		end
+
+		OverrideAntiAim({
+			yaw = antibrute_side == 1 and 10 or -10,
+			jitter = 0,
+			inverted = antibrute_side == 1,
+			lby = antibrute_side == 1 and 60 or -60,
+			limit = antibrute_side == 1 and 10 or -10
+		});
+
+		return true
+	end
+
+	local dist, moving;
+	local aggressive = aa_type:GetInt( ) == 1;
+
+	local settings = {
+		default = {
+			{ yaw = 6, jitter = (aggressive and 20 or 0), inverted = false, lby = 25, limit = 30 },
+			{ yaw = -8, jitter = (aggressive and -20 or 0), inverted = true,  lby = 25, limit = 15 },
+			{ yaw = 2, jitter = 0, inverted = math.fmod(g_GlobalVars.tickcount, 4) >= 2, lby = 45, limit = 45 }
+		},
+
+		close = {
+			{ yaw = 5, jitter = -15 + (aggressive and -20 or 0), inverted = false, lby = 10, limit = 30 },
+			{ yaw = -5, jitter = 15 + (aggressive and 20 or 0), inverted = true,  lby = 25, limit = 30 },
+			{ yaw = 10, jitter = 0, inverted = math.fmod(g_GlobalVars.tickcount, 4) >= 2, lby = 45, lby = 15, limit = 15 }
+		},
+
+		edge = {
+			{ yaw = -10, jitter = 0, inverted = false, lby = 60, limit = 60 },
+			{ yaw = 15, jitter = 0, inverted = true,  lby = 60, limit = 60 },
+			{ yaw = -25, jitter = 50, inverted = true, lby = 60, limit = 60 }
+		}
+	}
+
+	side, dist, moving = GetFreeStandSide();
+
+	--print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+	--print(string.format("data:\n   • side [%s]\n   • distance [%s]", ({"left", "right", "unsure"})[side], dist))
+
+	if ShouldAntiBrute() then
+		return 
+	end
+
+	if yaw_base == false then 
+		ref_yaw:SetInt(4);
+	end
+
+	if ShouldPreferSafe(cmd) then
+		OverrideAntiAim({ 
+			yaw = -5, 
+			jitter = 10, 
+			inverted = math.fmod(g_GlobalVars.tickcount, 4) >= 2, 
+			lby = 60, 
+			limit = 60 
+		});
+
+		aa_mode = "unsafe";
+		return
+	end
+
+	if aa_preserve:GetBool( ) and not moving and dist < 30 then
+		OverrideAntiAim(settings.edge[side]);
+		--print("   • settings: edge");
+	else
+		if dist < 45 then
+			OverrideAntiAim(settings.close[side]);
+		--	print("   • settings: close");
+		else
+			OverrideAntiAim(settings.default[side]);
+	--		print("   • settings: default");
+		end
+	end	
+
+	aa_mode = "dynamic"
+end
+
+OnUseAA = function(cmd) 
+	local realtime = g_GlobalVars.realtime
+
+	if not aa_master:GetBool() then 
+	return; end		
+
+	if not legitaa_e:GetBool() then 
+	return; end
+	
+	ShouldActivate = function()
+		local entity = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer())
+		local player = entity:GetPlayer()
+		local eye_pos = player:GetEyePosition()
+
+		local c4s = g_EntityList:GetEntitiesByName("CPlantedC4");
+
+		for i = 1, #c4s do
+			local current = c4s[i];
+
+			local origin = current:GetRenderOrigin();
+
+			if origin:DistTo(eye_pos) < 90 then
+				return false
+			end
+		end
+
+		local hostages = g_EntityList:GetEntitiesByName("CHostage");
+
+		for i = 1, #hostages do
+			local current = hostages[i];
+
+			local origin = current:GetRenderOrigin();
+
+			if origin:DistTo(eye_pos) < 90 then
+				return false
+			end
+		end
+
+		return true
+	end
+		
+	if cheat.IsKeyDown(0x45) and ShouldActivate() then
+		aa_state = false
+		if realtime > legit_time + 0.2 then
+			if aa_state == false then
+				--g_EngineClient:ExecuteClientCmd("+use")
+				cmd.buttons = bit.bor(cmd.buttons, 32);
+				aa_state = true
+			end
+			if aa_state == true then
+				cmd.buttons = bit.band(cmd.buttons, bit.bnot(32));
+			end	
+		else 
+			if aa_state == true then
+				cmd.buttons = bit.band(cmd.buttons, bit.bnot(32));
+				aa_state = false	
+			end	
+			legit_time = realtime
+		end	
+
+		antiaim.OverridePitch(0)
+		antiaim.OverrideYawOffset(180)
+		antiaim.OverrideLimit(60);
+
+		ref_yaw:SetInt(1);
+
+		aa_mode = "Legit"
+	else
+		antiaim.OverridePitch(89.1)
+	end
+end	
+
+EdgeYaw = function()
+	if not aa_master:GetBool() then 
+	return; end	
+
+	if not edge_yaw:GetBool() then
+	return; end
+
+	local entity = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer())
+	local player = entity:GetPlayer()
+	local eye_pos = player:GetEyePosition()
+	local view_angles = g_EngineClient:GetViewAngles()
+
+	local distance = 8192
+	local closest_point = nil 
+
+	for i = view_angles.yaw - 180, view_angles.yaw + 180, 15 do 
+		local rotation = math.rad(i)
+		local point = Vector.new(
+			eye_pos.x + math.cos(rotation) * 100,
+			eye_pos.y + math.sin(rotation) * 100,
+			eye_pos.z
+		)
+
+		local trace = EngineTrace.TraceRay(eye_pos, point, entity, 0x4600400b)
+
+		if trace.fraction * 100 < distance then
+			distance = trace.fraction * 100
+			closest_point = point
+		end
+	end
+
+	if distance > 30 then 
+	return; end
+
+	local _, yaw = CalculateAngles(eye_pos, closest_point)
+	local delta = Normalize(view_angles.yaw - 180)
+	local final_yaw = Normalize(yaw - delta)
+
+	antiaim.OverrideYawOffset(final_yaw)
+	aa_mode = "Edge"
+end
+--- End AA
+
+
+CustomFakelag = function()
+	if not fakelag_enable:GetBool() then
+	return; end
+
+	if not g_EngineClient:IsInGame() then
+	return; end	
+
+	local desired = 0;
+	local mode = fakelag_type:GetInt();
+	local player = g_EntityList:GetLocalPlayer()
+	local velocity_x = player:GetProp("m_vecVelocity[0]")
+	local velocity_y = player:GetProp("m_vecVelocity[1]")
+	local reached_limit = false
+	local force_send = false
+
+	if math.max(math.min(math.sqrt(velocity_x^2 + velocity_y^2) / 350, 1 ), 0) < 1 then 
+		force_send = true 
+	end	
+
+	if 	mode == 0 then 
+		desired = fakelag_value:GetInt();
+	elseif mode == 1 then
+		local factor = math.max(math.min(math.sqrt(velocity_x^2 + velocity_y^2) / 350, 1 ), 0)
+		desired = fakelag_value:GetInt() * factor
+	elseif mode == 2 then
+		desired = utils.RandomInt(0, fakelag_value:GetInt())
+	else
+		desired = fakelag_value:GetInt()
+	end	
+
+	local choked_cmds = fakelag.SentPackets()
+
+	if choked_cmds >= desired or force_send then
+		reached_limit = false
+		force_send = false
+
+		fakelag.SetState(true)
+		return;
+	end
+	
+	reached_limit = true
+	fakelag.SetState(false)
+	fakelag.ForceSend()
+end
+
+HitscanOverrides = function()
+	if not rage_master:GetBool() then 
+	return; end
+
+	if not hitscan_enable:GetBool() then
+	return; end
+
+	if not g_EngineClient:IsInGame() then
+	return; end
+
+	local priority_hitbox = priority:GetInt()
+	local priority_value = prioritse_amount:GetInt()
+	local players = g_EntityList:GetPlayers()
+
+	for i, player in pairs(players) do
+		if player:IsTeamMate() then 
+			goto continue 
+		end
+
+		local index = player:EntIndex();
+		local player_ = player:GetPlayer();
+		local tickcount = g_GlobalVars.tickcount
+		local velocity_x = player:GetProp("m_vecVelocity[0]")
+		local velocity_y = player:GetProp("m_vecVelocity[1]")
+		local flags = player:GetProp("m_fFlags")
+		local weap_handle = player:GetProp("m_hActiveWeapon") 
+		local weapon = g_EntityList:GetClientEntityFromHandle(weap_handle) 
+		local local_p = g_EngineClient:GetLocalPlayer()
+		local local_ =  g_EntityList:GetClientEntity(local_p)
+		local local_player = local_:GetPlayer()
+		local bullet = cheat.FireBullet(local_player, local_player:GetProp("m_vecOrigin"), player:GetProp("m_vecOrigin"))
+		local enemy_hp = player:GetProp("m_iHealth")
+		local speed = math.sqrt(velocity_x^2 + velocity_y^2) 
+
+		--- index is being prefered to head or baim then skip the prioritise hitbox thing
+		CheckPreferHeadConditions = function()
+			if prefer_head:GetBool(0) then 
+				if speed > 135 then
+					return true;
+				end
+			end
+
+			if prefer_head:GetBool(1) then 
+				if shot_data[index] ~= nil then
+					if shot_data[index] + 5 > tickcount then
+						return true; 
+					end
+				end		
+			end
+		end
+
+		CheckPreferBodyConditions = function()
+			if prefer_body:GetBool(0) then
+				if speed > 5 and speed < 80 then 
+					return true; 
+				end
+			end
+			
+			if prefer_body:GetBool(1) then 
+				if bit.band(flags, 2) == 1 then 
+					return true;
+				end
+			end			
+
+			if prefer_body:GetBool(2) then
+				if enemy_hp < bullet.damage then 
+					return true;
+				end
+			end		
+		end
+
+		CheckForceHeadConditions = function()
+			if force_head:GetBool(0) then 
+				if speed > 135 then
+					return true;
+				end
+			end
+
+			if force_head:GetBool(1) then 
+				if shot_data[index] ~= nil then
+					if shot_data[index] + 5 > tickcount then
+						return true; 
+					end
+				end		
+			end
+		end
+
+		CheckForceBodyConditions = function()
+			if force_body:GetBool(0) then
+				if speed > 5 and speed < 80 then 
+					return true; 
+				end
+			end
+			
+			if force_body:GetBool(1) then 
+				if bit.band(flags, 2) == 1 then 
+					return true;
+				end
+			end			
+
+			if force_body:GetBool(2) then
+				if enemy_hp < bullet.damage then 
+					return true;
+				end
+			end		
+		end
+
+		local forcing_head = CheckForceHeadConditions()
+		local prefering_head = CheckPreferHeadConditions()
+		local forcing_body = CheckForceBodyConditions()
+		local prefering_body = CheckPreferBodyConditions()
+		local type = hitscan_type:GetInt()
+
+		if type == 0 then 
+			forcing_head = false
+			forcing_body = false 
+		end 
+		
+		if type == 1 then 
+			prefering_head = false
+			prefering_body = false
+		end	
+
+		part_text = (function() if forcing_head or prefering_head then return "H:" elseif forcing_body or prefering_body then return "B:" else return "N:" end end)()
+		type_text = (function() if forcing_head or forcing_body then return "Force" elseif prefering_head or prefering_body then return "Prefer" else return "Def" end end)() 
+
+		if type == 0 or 2 then 
+			if forcing_head == true then 
+				for j = 0, 19 do
+					ragebot.EnableHitbox(index, j, false)
+				end
+				goto continue
+			end
+		end
+
+		if type == 1 or 2 then 
+			if prefering_head == true then
+				ragebot.SetHitboxPriority(index, 0, 100)
+				goto continue 
+			end;
+		end
+
+		if type == 0 or 2 then 
+			if forcing_body == true then 
+				ragebot.EnableHitbox(index, 0, false)
+				ragebot.EnableHitbox(index, 1, false)
+				for legs = 7, 10 do 
+					ragebot.EnableHitbox(player:EntIndex(), legs, false)
+				end	
+				
+				for arms = 13, 18 do 
+					ragebot.EnableHitbox(player:EntIndex(), arms, false)
+				end	
+			end
+		end
+
+		if type == 1 or 2 then 
+			if prefering_body == true then
+				ragebot.SetHitboxPriority(index, 6, 100)
+				ragebot.SetHitboxPriority(index, 5, 100)
+				ragebot.SetHitboxPriority(index, 4, 100)
+				ragebot.SetHitboxPriority(index, 3, 100)
+				ragebot.SetHitboxPriority(index, 2, 100)
+				goto continue 
+			end;
+		end	
+		
+		if priority_hitbox == 0 then 
+			ragebot.SetHitboxPriority(index, 0, priority_value)
+		elseif priority_hitbox == 1 then 
+			ragebot.SetHitboxPriority(index, 6, priority_value)
+		elseif priority_hitbox == 2 then 
+			ragebot.SetHitboxPriority(index, 5, priority_value)
+		elseif priority_hitbox == 3 then 
+			ragebot.SetHitboxPriority(index, 4, priority_value)
+		elseif priority_hitbox == 4 then
+			ragebot.SetHitboxPriority(index, 3, priority_value)
+		elseif priority_hitbox == 5 then 
+			ragebot.SetHitboxPriority(index, 2, priority_value)
+		elseif priority_hitbox == 6 then 
+			ragebot.SetHitboxPriority(index, 7, priority_value)	
+			ragebot.SetHitboxPriority(index, 8, priority_value)	
+			ragebot.SetHitboxPriority(index, 9, priority_value)	
+			ragebot.SetHitboxPriority(index, 10, priority_value)
+		elseif priority_hitbox == 7 then 
+			ragebot.SetHitboxPriority(index, 13, priority_value)	
+			ragebot.SetHitboxPriority(index, 14, priority_value)	
+			ragebot.SetHitboxPriority(index, 15, priority_value)	
+			ragebot.SetHitboxPriority(index, 16, priority_value)
+			ragebot.SetHitboxPriority(index, 17, priority_value)	
+			ragebot.SetHitboxPriority(index, 18, priority_value)
+		elseif priority_hitbox == 8 then
+			ragebot.SetHitboxPriority(index, 11, priority_value)	
+			ragebot.SetHitboxPriority(index, 12, priority_value)		
+		end
+
+		::continue::
+	end	
+end
+--- End rage
+
+
+--- render
+WaterMarkRender = function()
+	if not watermark_enable:GetBool() then
+	return; end
+
+	local username = cheat.GetCheatUserName();
+	local text_size = g_Render:CalcTextSize(string.format("Nordic.lua %s   %s",build, username), 16, font);
+	local username_size = g_Render:CalcTextSize(username, 15, font);
+
+	local x = screen_size.x - text_size.x - 10 
+	local y = 10
+
+	local gradient_color = Color.new( 235 / 255, 135 / 255, 175 / 255, 200 / 255 );
+	local gradient_color2 = Color.new( 235 / 255, 135 / 255, 175 / 255, 0 );
+
+	g_Render:BoxFilled(Vector2.new(x, 12), Vector2.new(x + text_size.x, 25), Color.new(15 / 255, 15 / 255, 15 / 255, 125 / 255))
+	g_Render:GradientBoxFilled(Vector2.new(x, 24), Vector2.new(x + text_size.x, 26), gradient_color, gradient_color2, gradient_color, gradient_color2--[[Color.new(235 / 255, 135 / 255, 175 / 255, 200 / 255), Color.new( 235 / 255, 135 / 255, 175 / 255, 15 / 255), Color.new(235 / 255, 135 / 255, 175 / 255, 200 / 255), Color.new( 235 / 255, 135 / 255, 175 / 255, 15 / 255)--]]);
+	g_Render:Text("Nordic.lua "..build, Vector2.new(x + 2, y + 1), indicators_col:GetColor(), 15, font, true);
+	g_Render:Text(username, Vector2.new(x + text_size.x - username_size.x - 2, y + 1), Color.new( 0.90, 0.90, 0.90, 0.90 ), 15, font, true);
+end
+
+IndicatorsRender = function()
+	if indicators_col:GetBool() == false then 
+	return; end
+		
+	if not g_EngineClient:IsInGame() then
+	return; end	
+	
+	local binds = cheat.GetBinds()
+	local x = screen_size.x / 2 
+	local y = screen_size.y / 2 + 25
+	local exploiting = false;
+	local charge = exploits.GetCharge()
+	local dt_text = " "
+	
+	screen_size = g_EngineClient:GetScreenSize()
+	
+	g_Render:Text("Nordic.lua", Vector2.new(x - 30, y), indicators_col:GetColor(), 13, font, true)
+	g_Render:BoxFilled(Vector2.new(x - 33, y + 18), Vector2.new(x + 52, y + 20), indicators_col:GetColor())
+	g_Render:Text(string.upper(aa_mode), Vector2.new(x - 30, y + 20), Color.new(0.8, 0.95, 0.95), 13, font, true)	
+				
+	if show_keybinds:GetBool() then 
+		local offset = 0;
+		for i = 1, #binds do
+			if  binds[i]:IsActive() and binds[i]:GetName() ~= "Double Tap" then
+				g_Render:Text(string.upper(binds[i]:GetName()), Vector2.new(x - 30, y + 30 + offset), show_keybinds:GetColor(), 13, font, true)	
+		end
+					
+		if binds[i]:IsActive() and binds[i]:GetName() == "Double Tap" then 
+			dt_text = (function() if charge < 1 then return "DOUBLE TAP (".. string.format("%.2f", charge).. ")" else return "DOUBLE TAP" end end)()
+			local dt_col = (function() if charge == 1 then return show_keybinds:GetColor() else return indicators_col:GetColor() end end)()
+			g_Render:Text(dt_text, Vector2.new(x - 30, y + 30 + offset), dt_col, 13, font, true)												
+		end	
+		offset = offset + 10; 										
+	end
+	
+	end			
+end
+
+
+CustomScopeLines = function()
+	if not scope_enable:GetBool() then
+	return; end
+
+	if not g_EngineClient:IsInGame() then
+	return; end
+
+	ref_lines:SetInt(2)
+	local entity = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer())
+	local player = entity:GetPlayer()	
+	local x = screen_size.x / 2 
+	local y = screen_size.y / 2 
+
+	local col = scope_enable:GetColor()
+	local col2 = Color.new(col.r, col.g, col.b, 0.05)
+	local first_col = (function(a,b) if not scope_inverted:GetBool() then return b else return a end end)(col, col2)
+	local second_col = (function(a,b) if not scope_inverted:GetBool() then return a else return b end end)(col, col2)
+
+	if local_scoped then 
+		g_Render:GradientBoxFilled(Vector2.new((x - scope_length:GetInt()) - scope_offset:GetInt(), y), Vector2.new(x - scope_offset:GetInt(), y + 1), first_col, second_col, first_col, second_col)
+		g_Render:GradientBoxFilled(Vector2.new((x + scope_length:GetInt()) + scope_offset:GetInt(), y), Vector2.new(x + scope_offset:GetInt(), y + 1), first_col, second_col, first_col, second_col)
+		g_Render:GradientBoxFilled(Vector2.new(x, y + scope_offset:GetInt()), Vector2.new(x + 1, y + scope_length:GetInt() + scope_offset:GetInt()), second_col, second_col, first_col,first_col)
+		g_Render:GradientBoxFilled(Vector2.new(x, y - scope_offset:GetInt() - scope_length:GetInt()), Vector2.new(x + 1, y - scope_offset:GetInt()), first_col, first_col ,second_col, second_col)
+	end
+end
+
+local tracers = {
+	 bullets = { }
+};
+
+BulletTracers_Register = function(event)
+	if not bullet_tracers:GetBool() then
+	return end
+
+	local me = g_EngineClient:GetLocalPlayer();
+	local shooter = g_EngineClient:GetPlayerForUserId(event:GetInt("userid"));	
+
+	if me ~= shooter then
+	return end
+	
+	local player = g_EntityList:GetClientEntity(shooter):GetPlayer();
+
+	local from = player:GetEyePosition();
+	local to = Vector.new( event:GetFloat("x"), event:GetFloat("y"), event:GetFloat("z") );
+
+	Unshift(tracers.bullets, {
+		from = from,
+		to = to,
+		anim_time = 1
+	});
+end
+
+BulletTracers_Render = function()
+	if not bullet_tracers:GetBool() then
+	return end
+
+	local frametime = g_GlobalVars.frametime / 3.5;
+	local clr = bullet_tracers:GetColor();
+	local clr2 = bullet_tracers_xhair:GetColor();
+
+	for i = 1, #tracers.bullets do
+		local current = tracers.bullets[i];
+
+		if not current then
+			goto continue
+		end
+
+		current.anim_time = math.max(current.anim_time - frametime, 0);
+
+		if current.anim_time == 0 then
+			tracers.bullets[i] = nil;
+			goto continue;
+		end
+
+		local from_wts = g_Render:ScreenPosition(current.from);
+		local to_wts = g_Render:ScreenPosition(current.to);
+
+		ThickLine(from_wts, to_wts, Color.new(clr.r, clr.g, clr.b, clr.a * current.anim_time));
+
+		if bullet_tracers_xhair:GetBool() then
+			local clr_adjusted = Color.new(clr2.r, clr2.g, clr2.b, clr2.a * current.anim_time);
+
+			g_Render:BoxFilled(Vector2.new(to_wts.x - 1, to_wts.y - 5), Vector2.new(to_wts.x + 1, to_wts.y + 5), clr_adjusted);
+			g_Render:BoxFilled(Vector2.new(to_wts.x - 5, to_wts.y - 1), Vector2.new(to_wts.x + 5, to_wts.y + 1), clr_adjusted);
+		end	
+
+		::continue::
+	end
+end
+--- end render
+			
+--- misc
+
+NeverloseDetection = function()
+	local players = g_EntityList:GetPlayers()
+
+	for i, player in pairs(players) do
+		if player:IsTeamMate() then goto continue end
+		if player:GetProp("m_lifeState") == true then goto continue end
+		if player:IsDormant() then goto continue end
+
+   	 	local pitch = player:GetProp("m_angEyeAngles[0]");
+		local name = player:GetName() 
+	--	print(string.format("%s, pitch: %s", name, pitch))
+		if pitch > 84 and pitch < 85 then
+			return "NL user"
+		else
+			return ""
+		end
+		::continue::
+	end
+end
+
+ClantagChanger = function()
+	if not clantag_enable:GetBool() then
+		if ct_once == true then 
+			set_clantag(" ", " ")
+			ct_once = false;	
+			last_time = 0		
+		end	
+	return;	end
+	
+	local curtime = math.floor(g_GlobalVars.curtime / 0.5)
+	ct_once = true					
+	if (curtime >= last_time) then
+		set_clantag(animation[curtime % #animation+1], animation[curtime % #animation+1])
+		last_time = curtime + 0.5;
+	end																			
+end
+
+local it = {
+	active = false,
+
+	c_yaw = 0,
+	c_autopeek = false,
+	c_doubletap = false,
+	c_md_visible = 0,
+	c_md_autowall = 0
+};
+
+IdealTick = function()
+	if not ideal_tick:GetBool() then
+		if it.active then
+			it.active = false;
+
+			ref_yaw:SetInt(it.c_yaw);
+			ref_autopeek:SetBool(it.c_autopeek);
+			ref_dt:SetBool(it.c_doubletap);
+		end
+
+		return
+	end
+
+	if not it.active then
+		it.active = true;
+
+		it.c_yaw = ref_yaw:GetInt();
+		it.c_autopeek = ref_autopeek:GetBool();
+		it.c_doubletap = false;
+	end
+
+	ref_yaw:SetInt(5);
+	ref_autopeek:SetBool(true);
+	ref_dt:SetBool(true);
+
+	local players = g_EntityList:GetPlayers()
+
+	for _, player in pairs(players) do
+		ragebot.OverrideMinDamage(player:EntIndex(), 5)
+	end
+end
+
+RagebotLogs = function(shot)
+	if not logs:GetBool() then 
+		return; end	
+									
+		local target_idx = g_EntityList:GetClientEntity(shot.target_index)
+		local target = target_idx:GetPlayer() 
+		local hitbox = (function() if shot.hitgroup > -1 and shot.hitgroup < 8 then return hitgroups[shot.hitgroup] else return "unknown" end end)() 
+		local result = 	" "										
+		
+		if log_options:GetBool(1)	then							
+			if shot.reason == 0 then
+				result = "hit"
+				if log_type:GetBool(1) then														
+					cheat.AddEvent(result.." "..target:GetName().." for "..tostring(shot.damage).." in the "..hitbox.." with backtrack of "..tostring(shot.backtrack).." ticks")
+					print("[neverlose.cc] "..result.." "..target:GetName().." for "..tostring(shot.damage).." in the "..hitbox.." with backtrack of "..tostring(shot.backtrack).." ticks")
+				end	
+				
+				if log_type:GetBool(2) then														
+					cheat.AddNotify("Nordic.lua", result.." "..target:GetName().." for "..tostring(shot.damage).." in the "..hitbox.." with backtrack of "..tostring(shot.backtrack).." ticks")
+				end																																											
+			end
+		end									
+		
+	if log_options:GetBool(3) then																																
+		if shot.reason == 1 then 
+			result = (function() if g_Config:FindVar("Aimbot", "Ragebot", "Main", "Override Resolver"):GetBool() then return "wrong resolver override" else return "resolver" end end)()
+			if log_type:GetBool(0) then
+				cheat.AddEvent("Missed "..target:GetName().." due to "..result)	
+				print("[neverlose.cc] ".."Missed "..target:GetName().." due to "..result)	
+			end
+				
+			if log_type:GetBool(1) then														
+				cheat.AddNotify("Nordic.lua", "Missed "..target:GetName().." due to "..result)
+			end																																														
+		end
+	end										
+
+											
+	if log_options:GetBool(2)	then									
+		if shot.reason == 2 then
+				result = "spread"																											 																																												
+				if log_type:GetBool(0) then
+					cheat.AddEvent("Missed "..target:GetName().." due to "..result.." with a spread angle of  "..string.format("%.3f", shot.spread_degree))	
+					print("[neverlose.cc] ".."Missed "..target:GetName().." due to "..result.." with a spread angle of  "..string.format("%.3f", shot.spread_degree))	
+				end
+												
+				if log_type:GetBool(1) then														
+					cheat.AddNotify("Nordic.lua", "Missed "..target:GetName().." due to "..result.." with a spread angle of  "..string.format("%.3f", shot.spread_degree))
+				end								
+		end		
+	end																					
+			
+	if log_options:GetBool(5) then										
+		if shot.reason == 3 then
+			result = "occlusion"
+			if log_type:GetBool(0) then																		 
+				cheat.AddEvent("Missed "..target:GetName().." due to "..result)
+				print("[neverlose.cc] ".."Missed "..target:GetName().." due to "..result)
+			end
+			if log_type:GetBool(1) then														
+				cheat.AddNotify("Nordic.lua","Missed"..target:GetName().." due to "..result)
+			end	
+																															
+		end
+	end										
+		
+	if log_options:GetBool(4) then									
+		if shot.reason == 4 then
+			result = "prediction error"
+			if log_type:GetBool(0) then									
+				cheat.AddEvent("Missed "..target:GetName().." due to "..result)
+				print("[neverlose.cc] ".."Missed "..target:GetName().." due to "..result)
+			end
+												
+			if log_type:GetBool(1) then														
+				cheat.AddNotify("Nordic.lua", "Missed "..target:GetName().." due to "..result)
+			end																											
+		end
+	end								
+end
+
+local ragdoll = {
+	active = true
+};
+
+RagdollFun = function()
+	if not static_ragdoll:GetBool() then
+		if ragdoll.active then
+			ragdoll.active = false;
+
+			g_CVar:FindVar("cl_ragdoll_physics_enable"):SetInt(1);
+		end
+
+		return
+	end
+
+	if not ragdoll.active then
+		ragdoll.active = true;
+
+		g_CVar:FindVar("cl_ragdoll_physics_enable"):SetInt(0);
+	end
+end
+--- end misc
+
+--- callbacks
+MenuVisibility = function()
+	local enabled = rage_master:GetBool();
+	local enabled_recharge = faster_dt_recharge:GetBool();
+	local enabled_hitscan = hitscan_enable:GetBool();
+	local enabled_antiaim = aa_master:GetBool();
+	local enabled_cantiaim = aa_sys:GetBool();
+	local enabled_antibrute = anti_brute:GetBool();
+	local enabled_fakelag = fakelag_enable:GetBool();
+	local enabled_indicators = indicators_col:GetBool();
+	local enabled_scope = scope_enable:GetBool();
+	local enabled_logs = logs:GetBool();
+	local enabled_hitscans = hitscan_type:GetInt()
+
+	local force = (function() if enabled_hitscans == 1 or enabled_hitscans == 2 then return true else return false end end)()
+	local prefer = (function() if enabled_hitscans == 0 or enabled_hitscans == 2 then return true else return false end end)()
+	
+	faster_dt:SetVisible(enabled);
+	faster_dt_recharge:SetVisible(enabled);
+	recharge_mode:SetVisible(enabled and enabled_recharge);
+	hitscan_enable:SetVisible(enabled);
+	priority:SetVisible(enabled and enabled_hitscan);
+	prioritse_amount:SetVisible(enabled and enabled_hitscan);
+	hitscan_type:SetVisible(enabled and enabled_hitscan)
+	prefer_head:SetVisible(enabled and enabled_hitscan and prefer);
+	prefer_body:SetVisible(enabled and enabled_hitscan and prefer);
+	force_head:SetVisible(enabled and enabled_hitscan and force)
+	force_body:SetVisible(enabled and enabled_hitscan and force)
+	dt_damage:SetVisible(enabled)
+
+	legitaa_e:SetVisible(enabled_antiaim);
+	aa_sys:SetVisible(enabled_antiaim);
+	aa_type:SetVisible(enabled_antiaim and enabled_cantiaim);
+	aa_unsafe:SetVisible(enabled_antiaim and enabled_cantiaim);
+	aa_preserve:SetVisible(enabled_antiaim and enabled_cantiaim);
+	anti_brute:SetVisible(enabled_antiaim and enabled_cantiaim)
+	anti_brute_mode:SetVisible(enabled_antiaim and enabled_cantiaim and enabled_antibrute)
+	edge_yaw:SetVisible(enabled_antiaim);
+
+	fakelag_type:SetVisible(enabled_fakelag);
+	fakelag_value:SetVisible(enabled_fakelag);
+
+	show_keybinds:SetVisible(enabled_indicators);
+	scope_inverted:SetVisible(enabled_scope);
+	scope_length:SetVisible(enabled_scope);
+	scope_offset:SetVisible(enabled_scope);
+
+	log_type:SetVisible(enabled_logs);
+	log_options:SetVisible(enabled_logs);
+end
+
+cheat.RegisterCallback("events", function(event)
+	local name = event:GetName();
+
+	if name == "round_start" then
+		shot_data = {}
+	end
+
+	if name == "bullet_impact" then
+		UpdateAntiBrute(event)
+		BulletTracers_Register(event)
+	end
+	
+	if name ~= "weapon_fire" then
+	return; end
+
+	shooter = g_EngineClient:GetPlayerForUserId(event:GetInt("userid"))	
+	shot_tick = g_GlobalVars.tickcount
+
+	shot_data[ shooter ] = shot_tick
+end)
+						
+cheat.RegisterCallback("ragebot_shot", function(shot)
+	DTSpeed_Update(shot);
+
+	if not logs:GetBool() then 
+	return; end					 																				
+						
+	local target_idx = g_EntityList:GetClientEntity(shot.index)
+	local target = target_idx:GetPlayer() 
+	local hitbox = (function() if shot.hitgroup > -1 and shot.hitgroup < 8 then return hitgroups[shot.hitgroup] else return "unknown" end end)() 
+	
+	if log_options:GetBool(0) then 													
+		if log_type:GetBool(0) then
+			cheat.AddEvent("Fired at " .. target:GetName() .. "'s " .. hitbox .. " with " .. tostring(shot.hitchance) .. "% hitchance".. " for "..tostring(shot.damage).. " dmg at "..tostring(shot.backtrack).. " tick backtrack") 
+			print("[neverlose.cc] ".."Fired at " .. target:GetName() .. "'s " .. hitbox .. " with " .. tostring(shot.hitchance) .. "%% hitchance".. " for "..tostring(shot.damage).. " dmg at "..tostring(shot.backtrack).. " tick backtrack")
+		end	
+							
+		if log_type:GetBool(1) then
+			cheat.AddNotify("Nordic.lua","Fired at " .. target:GetName() .. "'s " .. hitbox .. " with " .. tostring(shot.hitchance) .. " hitchance".. " for "..tostring(shot.damage).. " dmg at "..tostring(shot.backtrack).. " tick backtrack") 
+		end
+	end																																																																					
+end)
+								
+cheat.RegisterCallback("registered_shot", function(shot)
+	RagebotLogs(shot);																																																																																																																																																																									
+end)
+																						
+cheat.RegisterCallback("createmove", function(cmd)					
+	DTSpeed()
+	RagdollFun()		
+end)
+
+cheat.RegisterCallback("pre_prediction", function(cmd)
+	--HitboxOverride()
+	DTDamage();
+	--ForceOnShot()
+	CustomAA(cmd)
+	OnUseAA(cmd)
+	EdgeYaw()
+	CustomFakelag()
+	HitscanOverrides()
+	IdealTick()
+end)
+	
+cheat.RegisterCallback("draw", function()		
+	IndicatorsRender()
+	WaterMarkRender()
+	CustomScopeLines()
+	BulletTracers_Render();
+	NeverloseDetection()
+end)
+
+cheat.RegisterCallback("frame_stage", function(frame_stage)
+	if frame_stage == 1 then 
+		ClantagChanger()
+	end
+
+	if not g_EngineClient:IsInGame() then
+	return; end
+
+	if not scope_enable:GetBool() then
+	return; end
+
+	local entity = g_EntityList:GetClientEntity(g_EngineClient:GetLocalPlayer())
+	local player = entity:GetPlayer()	
+	local is_scoped = player:GetProp("m_bIsScoped")
+
+	local_scoped = is_scoped;
+end)
+
+esp.CustomText("HitScan", "enemies", "N:Def", function(ent)
+	return part_text..type_text
+end)
+
+esp.CustomText("Neverlose detection", "enemies", "NL user", function(ent)
+    return NeverloseDetection()
+end)
+
+local InputText = menu.TextBox("Custom Hitsound", "FilePatch", 64, "", "")
+local oldStatus = g_Config:FindVar("Visuals", "World", "Hit", "Hit Sound"):GetBool()
+g_Config:FindVar("Visuals","World", "Hit", "Hit Sound"):SetBool(false)
+
+ffi.cdef[[
+    bool PlaySound(const char *pszSound, void *hmod, uint32_t fdwSound);
+]]
+-- https://docs.microsoft.com/en-us/previous-versions/dd743680(v=vs.85)
+local Winmm = ffi.load("Winmm")
+local function PlaySound(file)
+    Winmm.PlaySound(file, nil, 0x00020003)   -- SND_ASYNC  | SND_NODEFAULT | SND_FILENAME
+end                      
+
+
+
+local function events(event)
+    local event_name = event:GetName()
+    if event_name == "player_hurt" then
+    local attacker = g_EngineClient:GetPlayerForUserId(event:GetInt("attacker", 0))
+        if attacker == g_EngineClient:GetLocalPlayer() then
+ 			PlaySound(InputText:GetString())
+		end
+    end
+end
+cheat.RegisterCallback("events", events)
+
+local function destroy()
+    g_Config:FindVar("Visuals","World", "Hit", "Hit Sound"):SetBool(oldStatus)
+end
+cheat.RegisterCallback("destroy", destroy)
+
+rage_master:RegisterCallback(MenuVisibility);
+faster_dt_recharge:RegisterCallback(MenuVisibility);
+hitscan_enable:RegisterCallback(MenuVisibility);
+aa_master:RegisterCallback(MenuVisibility);
+aa_sys:RegisterCallback(MenuVisibility);
+anti_brute:RegisterCallback(MenuVisibility);
+fakelag_enable:RegisterCallback(MenuVisibility);
+indicators_col:RegisterCallback(MenuVisibility);
+scope_enable:RegisterCallback(MenuVisibility);
+logs:RegisterCallback(MenuVisibility);
+hitscan_type:RegisterCallback(MenuVisibility)
+--- end callbacks	
+					
+cheat.AddNotify("Nordic.lua", "Nordic.lua loaded successfully")			
+cheat.AddEvent("Nordic.lua loaded successfully")	
+MenuVisibility();						
